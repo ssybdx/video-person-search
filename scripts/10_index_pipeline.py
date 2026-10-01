@@ -100,7 +100,7 @@ def build_index(frames, tracks, reid):
     save = {}
     for tid in kept:
         rows = [i for i, o in enumerate(owners) if o == tid]
-        save[f"emb_{tid}"] = feats[rows].numpy()     # 存整个向量组，不平均！max融合要用
+        save[f"emb_{tid}"] = feats[rows].cpu().numpy()  # 存整个向量组，不平均！max融合要用（.cpu()：07 GPU 化后特征在显存）
         save[f"frames_{tid}"] = np.array([h[0] for h in kept[tid]]) * FRAME_STEP  # 换算回原视频帧号
         save[f"paths_{tid}"] = np.array([samples[i][0] for i in rows])
     np.savez(os.path.join(OUT_DIR, "index.npz"), **save)

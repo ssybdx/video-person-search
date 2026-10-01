@@ -29,3 +29,6 @@ runs/
 .idea/
 
 PPT/
+
+# 简历含个人信息，不入库
+tailored-resume-generator/

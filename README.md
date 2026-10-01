@@ -56,7 +56,7 @@ python -m streamlit run web/app.py
 
 数据文件：`docs/ablation_results.csv`（训练四组）、`docs/market_multiquery_b.csv`（多图矩阵）、`docs/b_group_results.csv`（校服反例）、`docs/figures/`（训练曲线评估截图）。
 
-## 消融实验要点（毕设第 4 章素材）
+## 消融实验要点（第 4 章素材）
 
 - **损失函数**：70 轮+官方配方下纯 softmax 最优，triplet 为净负担（"采样器根因"假设经 A2b 验证被证伪——含正误对照记录）
 - **多图融合**：Market 真实多图显著提升（上表 +5.5/+11.0pp）；**反例**：自拍校服素材零提升甚至 mean 反超——因查询图 18 秒连拍同质 + 统一校服特征不可排序 + 样本量 4，创新点验证依赖正确的数据协议

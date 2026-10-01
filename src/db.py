@@ -11,7 +11,7 @@ SQLITE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "vperson.db")
 MYSQL_CONF = dict(host=os.environ.get("DB_HOST", "127.0.0.1"), port=int(os.environ.get("DB_PORT", 3306)),
                   user=os.environ.get("DB_USER", "vperson"),
-                  password=os.environ.get("DB_PASS", "vp123456"),
+                  password=os.environ.get("DB_PASS", ""),  # 密码走环境变量；留空时 MySQL 连不上会自动回退 SQLite
                   database=os.environ.get("DB_NAME", "vperson"),
                   charset="utf8mb4")
 

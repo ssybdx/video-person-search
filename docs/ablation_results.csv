@@ -1,0 +1,9 @@
+﻿group,loss,sampler,fixbase_epoch,mAP,Rank-1,note
+A0,softmax,RandomSampler,10,81.5,93.8,纯分类损失；耗时1:15:58；截图 docs/figures/A0
+A1,triplet,RandomIdentitySampler,0,73.0,86.5,纯度量损失；main.py断言强制fixbase=0；耗时1:50:39；截图 docs/figures/A1
+A2,triplet+CE,RandomSampler,10,80.6,93.7,联合损失+默认采样器；截图见A2-1记录
+A2b,triplet+CE,RandomIdentitySampler,10,77.0,91.7,联合+身份采样；最终ep70=77.0/91.7、最优快照ep40=78.8/92.1(tar-40)；未超A0也未超A2，"采样器根因"假设被证伪；纯softmax仍为最优；截图 docs/figures/A2b
+07B-cos-A0,softmax,RandomSampler,10,,90.83,自训权重在系统余弦协议复评（含同相机99.64）；2026-09-29
+07B-cos-A2,triplet+CE,RandomSampler,10,,91.69,含同相机99.73；**选定为系统权重**（自训中系统协议最高、与第三方统计持平）
+07B-cos-A2b,triplet+CE,RandomIdentitySampler,10,,90.29,含同相机99.73；用tar-40最优快照复评
+07B-cos-第三方,market预训练(第三方搬运),-,-,,92.16,含同相机99.61；参照组（07B-1），配方黑盒

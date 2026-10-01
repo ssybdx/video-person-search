@@ -3,30 +3,29 @@
 > 本文档是 08/09 的交付物：3060 Ti 到位（或租卡）当天，照此清单顺序执行即可，零临场决策。
 > 冒烟已验证（2026-09-19，CPU）：数据→前向→TripletLoss+CE 联合损失→反向更新 四件套无报错。
 
-## 一、正式训练命令（换卡日直接用）
+## 一、正式训练命令（2026-09-28 重写：仓库已重构，旧 examples/train.py 不存在，见坑 1.22）
+
+新入口 = `scripts/main.py` + `configs/*.yaml` 基座 + 点号参数覆盖。GPU 冒烟已实测通过（1 epoch 3.5 分钟含全量评估，Rank-1 62.1% 起步）。
 
 ```bash
-# 前提：CUDA 版 torch（装法见踩坑库 2.4；本机 torchreid 的 CE 硬编码 cuda，
-# 交叉验证过必须 GPU——见坑 1.18）
-cd <repo>/deep-person-reid
-python examples/train.py \
-  --root E:\QianwenApp\workplaces\视频目标人物检索项目\data \
-  --datasets market1501 \
-  --arch osnet_x1_0 \
-  -s autodetect \
-  --loss softmax triplet \
-  --triplet-margin 0.3 \
-  --max-epoch 70 \
-  --train-batch-size 64 --test-batch-size 64 \
-  --height 256 --width 128 \
-  --gpu 0 \
-  --eval-freq 10 \
-  --log-dir logs/train_$(date +%Y%m%d)
+cd C:\Users\ssybdx\deep-person-reid
+# A2 组（联合损失 = 主训练）：softmax+triplet，官方 amsgrad 配方
+python scripts/main.py --config-file configs/im_osnet_x1_0_softmax_256x128_amsgrad.yaml --root E:\QianwenApp\workplaces\视频目标人物检索项目\data data.save_dir log/train_A2 train.max_epoch 70 train.batch_size 64 test.eval_freq 10 loss.name triplet loss.triplet.weight_x 1.0 loss.triplet.margin 0.3
 ```
 
-- 3060 Ti 8G 上 batch 64 + 256×128 是安全配置；OOM 就降 32 并开 `--fp16`（torchreid 支持需确认版本，不支持就降分辨率 128×64——会牺牲精度，记录在案）
-- **eval-freq 10**：第 10/20/.../70 epoch 输出 Rank-1/mAP，曲线素材截图保存
-- **checkpoint**：torchreid 自动存 `logs/train_*/`，每天训练完立即按 `osnet_market_YYYYMMDD_ep70.pth` 改名归档（毕设要用，交接文档纪律）
+- 基座 YAML 已含官方 zoo 配方：amsgrad lr 0.0015、stepsize 60、fixbase_epoch 10（前 10 轮只训分类头）——**别覆盖这些**，94.2% 就是这么来的
+- `loss.name triplet + weight_x 1.0` = triplet+CE 联合（源码 main.py:92-94 与 engine 逻辑）
+- batch 64 在 8G 显存安全；OOM 降 32（不动 lr）
+- **时长预估：70 轮 ≈ 2~2.5 小时**（冒烟实测推算）
+- 每 10 轮打印 Rank-1/mAP → **截图存 docs/**；结束 checkpoint 在 `log/train_A2\model\`，改名归档为 `osnet_market_A2_日期.pth` 放 `models\`
+
+### 其余消融组的命令差异（A2 达标后再跑）
+
+| 组 | 在 A2 命令基础上改 |
+|---|---|
+| A0 | `loss.name softmax`（删掉 triplet 两参数），save_dir 改 train_A0 |
+| A1 | `loss.triplet.weight_x 0`（纯triplet），save_dir 改 train_A1 |
+| A3 | 关 hard mining：新版 TripletLoss 无开关，需改 site-packages torchreid 源码——**A2 达标后再讨论，不阻塞主线** |
 
 ## 二、验收标准
 

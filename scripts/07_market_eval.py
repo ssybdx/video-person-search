@@ -16,8 +16,8 @@ from torchvision import transforms
 DATA_ROOT = r"E:\QianwenApp\workplaces\视频目标人物检索项目\data\market1501\Market-1501-v15.09.15"
 QUERY_DIR = DATA_ROOT + r"\query"
 GALLERY_DIR = DATA_ROOT + r"\bounding_box_test"
-N_QUERY = 50  # 只取前 50 张 query
-N_GALLERY = 2000  # gallery 随机抽 2000 张
+N_QUERY = 3368  # 只取前 50 张 query
+N_GALLERY = 19732  # gallery 随机抽 2000 张
 SEED = 42  # 固定随机种子，保证复跑数字一致
 TOPK = 5  # 每条 query 看前 5 名
 
@@ -25,6 +25,7 @@ NORM_MEAN = [0.485, 0.456, 0.406]  # OSNet 官方训练配方，别换
 NORM_STD = [0.229, 0.224, 0.225]
 
 IMG_H, IMG_W = 256, 128  # torchreid 标准输入尺寸(高x宽)
+CKPT = r"E:\QianwenApp\workplaces\视频目标人物检索项目\models\osnet_market_A2_20260928.pth"  # 系统选定权重（07B-2 复评 91.69%）
 
 
 # ---------- TODO-1: 解析文件名 ----------
@@ -74,13 +75,14 @@ def build_reid_model():
     想清楚为什么这里要 .eval()（提示：dropout/BN 在训练与推理时的行为差异）。
     """
     model = torchreid.models.build_model(name='osnet_x1_0', num_classes=751, pretrained=False)
-    # torchreid 内置下载只有 ImageNet 版权重（对 ReID 无判别力，Rank-1 只有 6%）
-    # 这里手动加载作者团队训练版 osnet_x1_0_market_250x125x3 权重
-    sd = torch.load(r"C:\Users\ssybdx\.cache\torch\checkpoints\osnet_x1_0_market1501.pth", map_location="cpu")
-    ret = model.load_state_dict(sd, strict=False)  # 返回未匹配清单，下面核验
-    print("=> 未加载的模型层:", list(ret.missing_keys))   # 只允许出现 classifier.*
+    ck = torch.load(CKPT, map_location="cpu", weights_only=False)
+    raw = ck['state_dict']  # 训练档外层是字典，权重表在 state_dict 键下
+    sd = {k.replace('module.', ''): v for k, v in raw.items()}  # 剥掉 DataParallel 加的 module. 前缀
+    ret = model.load_state_dict(sd, strict=False)
+    print("=> 当前权重:", CKPT)
+    print("=> 未加载的模型层:", list(ret.missing_keys))
     print("=> 多余的权重键:", list(ret.unexpected_keys))
-    return model.eval()
+    return model.eval().cuda()
 
 
 # ---------- TODO-4: 单图预处理 ----------
@@ -111,7 +113,7 @@ def extract_feats(model, samples, batch_size=64):
         batch = samples[i:i + batch_size]                # 切出一批（最后可能不足64）
         imgs = torch.stack([load_image(p).squeeze(0)     # 每张 (1,3,H,W) 先捏回 (3,H,W)
                             for p, _, _ in batch])       # stack 成 (B,3,H,W)
-        out = model(imgs)                                # 前向 → (B,512)
+        out = model(imgs.cuda())                                # 前向 → (B,512)
         feats.append(out)                                # 存进袋子
     all_feats = torch.cat(feats, dim=0)                  # 全部批次拼成 (N,512)
     return torch.nn.functional.normalize(all_feats, dim=1)  # 每行 L2 归一化，"余弦化"开关
